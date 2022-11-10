@@ -2,6 +2,8 @@
 
 var config = {
 
+    host: "localhost",
+
     user: "postgres",
 
     database: "postgres",

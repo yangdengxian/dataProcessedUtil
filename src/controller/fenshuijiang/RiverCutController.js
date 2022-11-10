@@ -43,9 +43,13 @@ router.get('/queryData', function (req, res, next) {
 
             const lines = linesResult.rows;
             // let lineCount = 0;
+            //向上海拔拔高45米
+            const updelatElevation = 45,
+                //向下海拔降低7米
+                downdelatElevation = 7;
 
-            lines.forEach((line,index) => {
-                (function(index){
+            lines.forEach((line, index) => {
+                (function (index) {
                     //多线
                     const lineGeoJSON = JSON.parse(line["linegeojson"]);
                     const lineCenterGeoJSON = JSON.parse(line["center"]);
@@ -57,7 +61,7 @@ router.get('/queryData', function (req, res, next) {
                     let lineCoordsE = [];
                     //求最大最小高程值
                     let maxElevation = 0;
-                    let minElevation = 0; 
+                    let minElevation = 0;
                     //查询对应点数据
                     client.query(`select elevation, st_asgeojson(geom) as pointgeojson from ${schema}.rivercutpoints where entityname = '${entityname}';`, [], function (err, pointsResut) {
                         if (err) {
@@ -82,11 +86,11 @@ router.get('/queryData', function (req, res, next) {
                                 const pointGeoJSON = JSON.parse(point["pointgeojson"]);
                                 //多点
                                 const pointCoord = pointGeoJSON["coordinates"][0];
-    
+
                                 if (coord[0] == pointCoord[0] && coord[1] == pointCoord[1]) {
                                     // coord[2] = +elevation;
                                     //拔高45米
-                                    coord[2] = +elevation + 45;
+                                    coord[2] = +elevation + updelatElevation;
                                     coord[2] = +(+coord[2].toFixed(2));
                                     //初始化最大最小值
                                     if (!maxElevation || !minElevation) {
@@ -100,14 +104,14 @@ router.get('/queryData', function (req, res, next) {
                                 }
                             }
                         }
-    
+
                         //js 反向 遍历数组
                         let len = cutPolygonCoordinates.length;
                         for (var i = len - 1; i >= 0; i--) {
                             var coord = [
                                 cutPolygonCoordinates[i][0],
                                 cutPolygonCoordinates[i][1],
-                                +((minElevation - 7).toFixed(2))
+                                +((minElevation - downdelatElevation).toFixed(2))
                             ];
                             cutPolygonCoordinates.push(coord);
                         }
@@ -115,7 +119,9 @@ router.get('/queryData', function (req, res, next) {
                         cutPolygonCoordinates.push(cutPolygonCoordinates[0]);
                         cutPolygonGeoJSON["features"].push({
                             "type": "Feature",
-                            "properties": Object.assign(line,{
+                            "properties": Object.assign(line, {
+                                updelatElevation,
+                                downdelatElevation,
                                 maxelevation: maxElevation,
                                 minelevation: +((minElevation - 7).toFixed(2)),
                                 linelength: +((+(line["shape_leng"])).toFixed(2)),
@@ -149,7 +155,7 @@ router.get('/queryData', function (req, res, next) {
                         } */
 
                         if (index == lines.length - 1) {
-                            FileUtil.writeFile('./public/data/cutPolygonGeoJSON.geojson',cutPolygonGeoJSON,function(e){
+                            FileUtil.writeFile('./public/data/cutPolygonGeoJSON.geojson', cutPolygonGeoJSON, function (e) {
                                 if (e) {
                                     return console.error(e);
                                 }
